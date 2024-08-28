@@ -1,230 +1,208 @@
-#include <conio.h>
-#include <cstdio>
+
 #include <iostream>
-#include <string.h>
+#include <cstring>
 #include <cstdlib>
+#include <queue>
+#include <stack>
 
 using namespace std;
-static int p = 0;
 
-class a
-{
-	char roomn[5], host[10], start[5], send[5], from[10], to[10], chair[8][4][10];
+static int roomCount = 0;
+
+class RoomReservation {
+    char roomNumber[5], hostName[10], startTime[5], endTime[5], seats[8][4][10];
+    queue<string> waitlist;  
+    stack<int> seatHistory;  
 
 public:
-	void install();
-	void allotment();
-	void empty();
-	void show();
-	void avail();
-	void position(int i);
+    void addRoom();
+    void bookSeat();
+    void undoLastBooking();  // Undo
+    void initializeSeats();
+    void showRoomDetails();
+    void availableRooms();
+    void displaySeatingArrangement(int roomIndex);
+    void addToWaitlist(string name);  //not implemented yet
+};
+
+RoomReservation rooms[10];
+
+void vline(char ch) {
+    for (int i = 80; i > 0; i--)
+        cout << ch;
 }
 
-room[10];
-void vline(char ch)
-{
-	for (int i = 80; i > 0; i--)
-		cout << ch;
+void RoomReservation::addRoom() {
+    cout << "Enter room number: ";
+    cin >> rooms[roomCount].roomNumber;
+    cout << "Enter Host's name: ";
+    cin >> rooms[roomCount].hostName;
+    cout << "Enter starting time: ";
+    cin >> rooms[roomCount].startTime;
+    cout << "Enter ending time: ";
+    cin >> rooms[roomCount].endTime;
+    initializeSeats();
+    roomCount++;
 }
 
-void a::install()
-{
-	cout << "Enter prefered room no: ";
-	cin >> room[p].roomn;
-	cout << "\nEnter Host's name: ";
-	cin >> room[p].host;
-	cout << "\nYour starting time: ";
-	cin >> room[p].start;
-	cout << "\nYour visit will end at: ";
-	cin >> room[p].send;
-	cout << "\nFrom: \t\t\t";
-	cin >> room[p].from;
-	cout << "\nTo: \t\t\t";
-	cin >> room[p].to;
-	room[p].empty();
-	p++;
+void RoomReservation::bookSeat() {
+    int seatNumber;
+    char roomNo[5];
+
+    cout << "Enter Room number: ";
+    cin >> roomNo;
+    int n;
+    for (n = 0; n < roomCount; n++) {
+        if (strcmp(rooms[n].roomNumber, roomNo) == 0)
+            break;
+    }
+    if (n == roomCount) {
+        cout << "Room not found. Please enter a valid room number.\n";
+        return;
+    }
+
+    while (true) {
+        cout << "Enter seat number (1-32): ";
+        cin >> seatNumber;
+        if (seatNumber < 1 || seatNumber > 32) {
+            cout << "Invalid seat number. There are only 32 seats available.\n";
+        } else {
+            if (strcmp(rooms[n].seats[(seatNumber - 1) / 4][(seatNumber - 1) % 4], "Available") == 0) {
+                cout << "Enter participant's name: ";
+                cin >> rooms[n].seats[(seatNumber - 1) / 4][(seatNumber - 1) % 4];
+                seatHistory.push(seatNumber);  // Push the booked seat to the stack
+                break;
+            } else {
+                cout << "Seat already booked. Please choose another seat.\n";
+            }
+        }
+    }
 }
 
-void a::allotment()
-{
-	int chair;
-	char number[5];
+void RoomReservation::undoLastBooking() {
+    char roomNo[5];
+    cout << "Enter Room number: ";
+    cin >> roomNo;
 
-top:
-	cout << "Room no: ";
-	cin >> number;
-	int n;
-	for (n = 0; n <= p; n++)
-	{
-		if (strcmp(room[n].roomn, number) == 0)
-			break;
-	}
-	while (n <= p)
-	{
-		cout << "\nChair Number: ";
-		cin >> chair;
-		if (chair > 32)
-		{
-			cout << "\nThere are only 32 Chairs available in this Room.";
-		}
-		else
-		{
-			if (strcmp(room[n].chair[chair / 4][(chair % 4) - 1], "Empty") == 0)
-			{
-				cout << "Enter traveller's name: ";
-				cin >> room[n].chair[chair / 4][(chair % 4) - 1];
-				break;
-			}
-			else
-				cout << "The Chair number is already reserved.\n";
-		}
-	}
-	if (n > p)
-	{
-		cout << "Enter correct Room  number:\n";
-		goto top;
-	}
+    int n;
+    for (n = 0; n < roomCount; n++) {
+        if (strcmp(rooms[n].roomNumber, roomNo) == 0) {
+            break;
+        }
+    }
+
+    if (n == roomCount) {
+        cout << "Room not found. Please enter a valid room number.\n";
+        return;
+    }
+
+    if (seatHistory.empty()) {
+        cout << "No bookings to undo.\n";
+    } else {
+        int lastSeat = seatHistory.top();  // Get the last booked seat from the stack
+        seatHistory.pop();  // Remove it from the stack
+        strcpy(rooms[n].seats[(lastSeat - 1) / 4][(lastSeat - 1) % 4], "Available");
+        cout << "Undo successful. Seat " << lastSeat << " is now available again.\n";
+    }
 }
 
-void a::empty()
-{
-	for (int i = 0; i < 8; i++)
-	{
-		for (int j = 0; j < 4; j++)
-
-		{
-			strcpy(room[p].chair[i][j], "Empty");
-		}
-	}
+void RoomReservation::initializeSeats() {
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 4; j++) {
+            strcpy(rooms[roomCount].seats[i][j], "Available");
+        }
+    }
 }
-// ----------------------------------------------------------------------------
-void a::show()
 
-{
-	int n;
-	char number[5];
-	cout << "Enter Room number: ";
-	cin >> number;
-	for (n = 0; n <= p; n++)
+void RoomReservation::showRoomDetails() {
+    char roomNo[5];
+    cout << "Enter Room number: ";
+    cin >> roomNo;
 
-	{
-		if (strcmp(room[n].roomn, number) == 0)
-			break;
-	}
-	while (n <= p)
+    int n;
+    for (n = 0; n < roomCount; n++) {
+        if (strcmp(rooms[n].roomNumber, roomNo) == 0) {
+            break;
+        }
+    }
 
-	{
-		vline('*');
-		cout << "Room number: \t" << room[n].roomn
-
-			 << "\nHost: \t" << room[n].host << "\t\tStart time: \t"
-			 << room[n].start << "\t End time:" << room[n].send
-			 << "\nFrom: \t\t" << room[n].from << "\t\tTo: \t\t" << room[n].to << "\n";
-		vline('*');
-		room[0].position(n);
-		int a = 1;
-
-		for (int i = 0; i < 8; i++)
-		{
-			for (int j = 0; j < 4; j++)
-
-			{
-
-				a++;
-				if (strcmp(room[n].chair[i][j], "Empty") != 0)
-					cout << "\nThe Chair number: " << (a - 1) << " is reserved for " << room[n].chair[i][j] << ".";
-			}
-		}
-		break;
-	}
-	if (n > p)
-		cout << "Enter correct Room number: ";
+    if (n < roomCount) {
+        vline('*');
+        cout << "Room number: " << rooms[n].roomNumber
+             << "\nHost: " << rooms[n].hostName
+             << "\nStart time: " << rooms[n].startTime
+             << "\nEnd time: " << rooms[n].endTime << "\n";
+        vline('*');
+        displaySeatingArrangement(n);
+    } else {
+        cout << "Room not found.\n";
+    }
 }
-// ------------------------------------------------------------------------------------------------
-void a::position(int l)
 
-{
-	int s = 0;
-	p = 0;
-	for (int i = 0; i < 8; i++)
-	{
-		cout << "\n";
-		for (int j = 0; j < 4; j++)
-		{
-			s++;
-			if (strcmp(room[l].chair[i][j], "Empty") == 0)
-			{
+void RoomReservation::displaySeatingArrangement(int roomIndex) {
+    int seatCounter = 0;
+    int availableSeats = 0;
 
-				cout.width(5);
-				cout.fill(' ');
-				cout << s << ".";
-				cout.width(10);
-				cout.fill(' ');
-				cout << room[l].chair[i][j];
-				p++;
-			}
-			else
-			{
-				cout.width(5);
-				cout.fill(' ');
-				cout << s << ".";
-				cout.width(10);
-				cout.fill(' ');
-				cout << room[l].chair[i][j];
-			}
-		}
-	}
-	cout << "\n\nThere are " << p << " Chairs empty in Room number: " << room[l].roomn;
+    cout << "\nSeating arrangement:\n";
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 4; j++) {
+            seatCounter++;
+            cout.width(5);
+            cout.fill(' ');
+            cout << seatCounter << ". " << rooms[roomIndex].seats[i][j];
+            if (strcmp(rooms[roomIndex].seats[i][j], "Available") == 0) {
+                availableSeats++;
+            }
+            if (j == 3) cout << "\n"; // New line after every 4 seats
+        }
+    }
+    cout << "\n\nThere are " << availableSeats << " seats available in Room number: " << rooms[roomIndex].roomNumber << ".\n";
 }
-// -----------------------------------------------------------------------------------------------------------
-void a::avail()
 
-{
-	for (int n = 0; n < p; n++)
-	{
-		vline('*');
-		cout << "Room number: \t" << room[n].roomn << "\nHost: \t" << room[n].host
-			 << "\t\tStart time: \t" << room[n].start << "\tEnd  Time: \t"
-			 << room[n].send << "\nFrom: \t\t" << room[n].from << "\t\tTo: \t\t\t"
-			 << room[n].to << "\n";
-		vline('*');
-		vline('_');
-	}
+void RoomReservation::availableRooms() {
+    for (int n = 0; n < roomCount; n++) {
+        vline('*');
+        cout << "Room number: " << rooms[n].roomNumber 
+             << "\nHost: " << rooms[n].hostName
+             << "\nStart time: " << rooms[n].startTime 
+             << "\nEnd time: " << rooms[n].endTime << "\n";
+        vline('*');
+    }
 }
-// ---------------------------------------------------------------------------------------------------------
-int main()
 
-{
-	system("cls");
-	int w;
-	while (1)
-	{
-		// system("cls");
-		cout << "\n\n\n\n\n";
-		cout << "\t\t\t1.Install\n\t\t\t"
-			 << "2.Reservation\n\t\t\t"
-			 << "3.Show\n\t\t\t"
-			 << "4.Rooms Available. \n\t\t\t"
-			 << "5.Exit";
-		cout << "\n\t\t\tEnter your choice:-> ";
-		cin >> w;
-		switch (w)
-		{
-		case 1:
-			room[p].install();
-			break;
-		case 2:
-			room[p].allotment();
-			break;
-		case 3:
-			room[0].show();
-			break;
-		case 4:
-			room[0].avail();
-			break;
-		case 5:
-			exit(0);
-		}
-	}
-	return 0;
+int main() {
+    system("cls");
+    int choice;
+    while (1) {
+        cout << "\n\nRoom Reservation System\n";
+        cout << "1. Add Room\n"
+             << "2. Book a Seat\n"
+             << "3. Undo Last Booking\n"
+             << "4. Show Room Details\n"
+             << "5. List Available Rooms\n"
+             << "6. Exit\n";
+        cout << "Enter your choice: ";
+        cin >> choice;
+
+        switch (choice) {
+            case 1:
+                rooms[roomCount].addRoom();
+                break;
+            case 2:
+                rooms[roomCount].bookSeat();
+                break;
+            case 3:
+                rooms[roomCount].undoLastBooking();
+                break;
+            case 4:
+                rooms[roomCount].showRoomDetails();
+                break;
+            case 5:
+                rooms[roomCount].availableRooms();
+                break;
+            case 6:
+                exit(0);
+        }
+    }
+    return 0;
 }
